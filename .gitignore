@@ -4,3 +4,4 @@ ebin
 c_src/hiredis/
 .eunit
 .rebar
+_build

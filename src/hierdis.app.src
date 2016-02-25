@@ -1,14 +1,20 @@
+%% -*- mode: erlang;erlang-indent-level: 4;indent-tabs-mode: nil -*-
+%% ex: ts=4 sw=4 ft=erlang et
+
 {application, hierdis, [
-  {description, "High-performance Erlang client for the Redis key-value store (NIF wrapping the hiredis C client)."},
-  {vsn, "0.2.1"},
-  {modules, [
-    hierdis,
-    hierdis_nif
-  ]},
-  {registered, []},
-  {applications, [
-    kernel,
-    stdlib
-  ]},
-  {env, []}
+    {description, "High-performance Erlang client for the Redis key-value store (NIF wrapping the hiredis C client)."},
+    {vsn, "0.2.1"},
+    {modules, [
+        hierdis,
+        hierdis_nif
+    ]},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib
+    ]},
+    {env, []},
+    {maintainers, ["funbox"]},
+    {licenses, ["MIT"]},
+    {links, [{"Github", "https://github.com/funbox/hierdis"}]}
 ]}.
