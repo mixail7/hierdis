@@ -1,37 +1,14 @@
-% (The MIT License)
-
-% Copyright (c) 2013 Nathan Aschbacher
-
-% Permission is hereby granted, free of charge, to any person obtaining
-% a copy of this software and associated documentation files (the
-% 'Software'), to deal in the Software without restriction, including
-% without limitation the rights to use, copy, modify, merge, publish,
-% distribute, sublicense, and/or sell copies of the Software, and to
-% permit persons to whom the Software is furnished to do so, subject to
-% the following conditions:
-
-% The above copyright notice and this permission notice shall be
-% included in all copies or substantial portions of the Software.
-
-% THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
-% EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-% MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-% IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-% CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-% TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-% SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 -module(hierdis).
 -author('Nathan Aschbacher <nathan@basho.com>').
 
 -export([connect/2,
-         connect/3, 
-         connect_unix/1, 
-         connect_unix/2, 
-         command/2, 
+         connect/3,
+         connect_unix/1,
+         connect_unix/2,
+         command/2,
          pipeline/2,
          transaction/2,
-         append_command/2, 
+         append_command/2,
          get_reply/1]).
 
 -include("hierdis.hrl").
@@ -94,7 +71,7 @@ pipe_builder(transaction, Context, [], Counter) ->
     Counter+1;
 pipe_builder(Scheme, Context, [Command|List], Counter) ->
     append_command(Context, Command),
-    pipe_builder(Scheme, Context, List, Counter+1).    
+    pipe_builder(Scheme, Context, List, Counter+1).
 
 %% @private
 pipe_cleaner(pipeline, _Context, Acc, 0) ->
