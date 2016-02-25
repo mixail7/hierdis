@@ -8,8 +8,8 @@ Using this approach also allows hierdis to communicate with Redis via unix domai
 
 This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis), which lacks these important features:
 
-* auto-reconnect
-* timeout on commands
+* **auto-reconnect**
+* **timeout on commands**
 * tests
 
 ## Usage
@@ -17,9 +17,6 @@ This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis),
 #####Get a Redis connection.
 
 ```erl
-$ erl -pa ebin/
-
-Eshell V5.9.1  (abort with ^G)
 1> {ok,C} = hierdis:connect_unix("/tmp/redis.sock").
 {ok,<<>>}
 ```
