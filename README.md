@@ -20,10 +20,13 @@ This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis),
 > {ok,C} = hierdis:connect_unix("/tmp/redis.sock").
 {ok,<<>>}
 
-> {ok,C2} = hierdis:connect("127.0.0.1", 6379).
+> {ok,C2} = hierdis:connect_unix("/tmp/redis.sock", 5000).
 {ok,<<>>}
 
-> {ok,C3} = hierdis:connect("127.0.0.1", 6379, 5000).
+> {ok,C3} = hierdis:connect("127.0.0.1", 6379).
+{ok,<<>>}
+
+> {ok,C4} = hierdis:connect("127.0.0.1", 6379, 5000).
 {ok,<<>>}
 ```
 
