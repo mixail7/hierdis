@@ -2,3 +2,4 @@
 ebin
 *.so
 c_src/hiredis/
+.eunit
