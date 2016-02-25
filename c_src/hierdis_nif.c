@@ -1,33 +1,10 @@
-// (The MIT License)
-
-// Copyright (c) 2013 Nathan Aschbacher
-
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the
-// 'Software'), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so, subject to
-// the following conditions:
-
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 #include "hierdis_nif.h"
 
 static ERL_NIF_TERM hierdis_make_error(ErlNifEnv* env, int code, const char* reason)
 {
     ERL_NIF_TERM atom;
 
-    switch(code) 
+    switch(code)
     {
         case REDIS_REPLY_ERROR:
             atom = ATOM_REDIS_REPLY_ERROR;
@@ -55,16 +32,16 @@ static ERL_NIF_TERM hierdis_make_error(ErlNifEnv* env, int code, const char* rea
 static ERL_NIF_TERM hierdis_make_binary_from_reply(ErlNifEnv* env, redisReply* r)
 {
     ERL_NIF_TERM term;
-    
-    hiredis_reply_handle* handle = (hiredis_reply_handle*)enif_alloc_resource(HIREDIS_REPLY_RESOURCE, sizeof(hiredis_reply_handle)); 
+
+    hiredis_reply_handle* handle = (hiredis_reply_handle*)enif_alloc_resource(HIREDIS_REPLY_RESOURCE, sizeof(hiredis_reply_handle));
     handle->reply = r;
-    term = enif_make_resource_binary(env, handle, handle->reply->str, handle->reply->len);    
+    term = enif_make_resource_binary(env, handle, handle->reply->str, handle->reply->len);
     enif_release_resource(handle);
 
     return term;
 }
 
-static ERL_NIF_TERM hierdis_make_list_from_reply(ErlNifEnv* env, redisReply* r) 
+static ERL_NIF_TERM hierdis_make_list_from_reply(ErlNifEnv* env, redisReply* r)
 {
     ERL_NIF_TERM list[r->elements];
 
@@ -105,11 +82,11 @@ static ERL_NIF_TERM hierdis_make_response(ErlNifEnv* env, redisReply* r, bool as
     return term;
 };
 
-static ERL_NIF_TERM connect(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) 
+static ERL_NIF_TERM connect(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     unsigned int length;
 
-    if(!enif_get_list_length(env, argv[0], &length)) 
+    if(!enif_get_list_length(env, argv[0], &length))
     {
         return enif_make_badarg(env);
     }
@@ -120,8 +97,8 @@ static ERL_NIF_TERM connect(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
     if(enif_get_string(env, argv[0], ip, length+1, ERL_NIF_LATIN1) && enif_get_int(env, argv[1], &port))
     {
-        hiredis_context_handle* handle = (hiredis_context_handle*)enif_alloc_resource(HIREDIS_CONTEXT_RESOURCE, sizeof(hiredis_context_handle)); 
-        
+        hiredis_context_handle* handle = (hiredis_context_handle*)enif_alloc_resource(HIREDIS_CONTEXT_RESOURCE, sizeof(hiredis_context_handle));
+
         if(argc == 3 && enif_get_int(env, argv[2], &timeout))
         {
             struct timeval sec = {timeout, 0}; // timeout in num seconds
@@ -129,10 +106,10 @@ static ERL_NIF_TERM connect(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         }
         else
         {
-            handle->context = redisConnect(ip, port);            
+            handle->context = redisConnect(ip, port);
         }
-        
-        if (handle->context != NULL && handle->context->err) 
+
+        if (handle->context != NULL && handle->context->err)
         {
             ERL_NIF_TERM error = hierdis_make_error(env, handle->context->err, handle->context->errstr);
             enif_release_resource(handle);
@@ -151,11 +128,11 @@ static ERL_NIF_TERM connect(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     }
 };
 
-static ERL_NIF_TERM connect_unix(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) 
+static ERL_NIF_TERM connect_unix(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     unsigned int length;
 
-    if(!enif_get_list_length(env, argv[0], &length)) 
+    if(!enif_get_list_length(env, argv[0], &length))
     {
         return enif_make_badarg(env);
     }
@@ -165,7 +142,7 @@ static ERL_NIF_TERM connect_unix(ErlNifEnv* env, int argc, const ERL_NIF_TERM ar
 
     if(enif_get_string(env, argv[0], socket_path, length+1, ERL_NIF_LATIN1))
     {
-        hiredis_context_handle* handle = (hiredis_context_handle*)enif_alloc_resource(HIREDIS_CONTEXT_RESOURCE, sizeof(hiredis_context_handle)); 
+        hiredis_context_handle* handle = (hiredis_context_handle*)enif_alloc_resource(HIREDIS_CONTEXT_RESOURCE, sizeof(hiredis_context_handle));
         if(argc == 3 && enif_get_int(env, argv[2], &timeout))
         {
             struct timeval sec = {timeout, 0}; // timeout in num seconds
@@ -173,10 +150,10 @@ static ERL_NIF_TERM connect_unix(ErlNifEnv* env, int argc, const ERL_NIF_TERM ar
         }
         else
         {
-            handle->context = redisConnectUnix(socket_path);            
+            handle->context = redisConnectUnix(socket_path);
         }
-        
-        if (handle->context != NULL && handle->context->err) 
+
+        if (handle->context != NULL && handle->context->err)
         {
             ERL_NIF_TERM error = hierdis_make_error(env, handle->context->err, handle->context->errstr);
             enif_release_resource(handle);
@@ -204,7 +181,7 @@ static void list_to_hiredis_argv(ErlNifEnv* env, ERL_NIF_TERM list, unsigned int
     {
         enif_get_list_cell(env, list, &head, &tail);
         enif_inspect_iolist_as_binary(env, head, &list_elm);
-        
+
         argv[i] = (const char*)list_elm.data;
         argv_lengths[i] = list_elm.size;
 
@@ -212,15 +189,15 @@ static void list_to_hiredis_argv(ErlNifEnv* env, ERL_NIF_TERM list, unsigned int
     }
 };
 
-static ERL_NIF_TERM command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) 
+static ERL_NIF_TERM command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     hiredis_context_handle* handle;
     redisReply* reply;
     unsigned int hiredis_argc;
-    
-    if (!enif_get_list_length(env, argv[1], &hiredis_argc)) 
+
+    if (!enif_get_list_length(env, argv[1], &hiredis_argc))
     {
-        return enif_make_badarg(env);    
+        return enif_make_badarg(env);
     }
 
     const char* hiredis_argv[hiredis_argc];
@@ -230,8 +207,8 @@ static ERL_NIF_TERM command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     {
         list_to_hiredis_argv(env, argv[1], hiredis_argc, hiredis_argv, hiredis_argv_lengths);
         reply = redisCommandArgv(handle->context, hiredis_argc, hiredis_argv, hiredis_argv_lengths);
-        
-        if (handle->context != NULL && handle->context->err) 
+
+        if (handle->context != NULL && handle->context->err)
         {
             return hierdis_make_error(env, handle->context->err, handle->context->errstr);
         }
@@ -250,14 +227,14 @@ static ERL_NIF_TERM command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     }
 };
 
-static ERL_NIF_TERM append_command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) 
+static ERL_NIF_TERM append_command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     hiredis_context_handle* handle;
     unsigned int hiredis_argc;
-    
-    if (!enif_get_list_length(env, argv[1], &hiredis_argc)) 
+
+    if (!enif_get_list_length(env, argv[1], &hiredis_argc))
     {
-        return enif_make_badarg(env);    
+        return enif_make_badarg(env);
     }
 
     const char* hiredis_argv[hiredis_argc];
@@ -267,7 +244,7 @@ static ERL_NIF_TERM append_command(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
     {
         list_to_hiredis_argv(env, argv[1], hiredis_argc, hiredis_argv, hiredis_argv_lengths);
         redisAppendCommandArgv(handle->context, hiredis_argc, hiredis_argv, hiredis_argv_lengths);
-        if (handle->context != NULL && handle->context->err) 
+        if (handle->context != NULL && handle->context->err)
         {
             return hierdis_make_error(env, handle->context->err, handle->context->errstr);
         }
@@ -282,7 +259,7 @@ static ERL_NIF_TERM append_command(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
     }
 };
 
-static ERL_NIF_TERM get_reply(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) 
+static ERL_NIF_TERM get_reply(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     hiredis_context_handle* handle;
 
@@ -290,8 +267,8 @@ static ERL_NIF_TERM get_reply(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
     {
         redisReply* reply;
 
-        redisGetReply(handle->context, (void*)&reply); 
-        if (handle->context != NULL && handle->context->err) 
+        redisGetReply(handle->context, (void*)&reply);
+        if (handle->context != NULL && handle->context->err)
         {
             return hierdis_make_error(env, handle->context->err, handle->context->errstr);
         }
@@ -302,7 +279,7 @@ static ERL_NIF_TERM get_reply(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
         else
         {
             return enif_make_tuple2(env, ATOM_OK, hierdis_make_response(env, (redisReply*)reply, false));
-        }   
+        }
     }
     else
     {
@@ -310,7 +287,7 @@ static ERL_NIF_TERM get_reply(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
     }
 };
 
-static ErlNifFunc nif_funcs[] = 
+static ErlNifFunc nif_funcs[] =
 {
     {"connect", 2, connect},
     {"connect", 3, connect},
@@ -353,7 +330,7 @@ void hiredis_reply_handle_dtor(ErlNifEnv* env, void* arg)
     hierdis_free_reply(handle->reply);
 }
 
-static int on_nif_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info) 
+static int on_nif_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
 {
     // Initialize common atoms
     #define ATOM(Id, Value) { Id = enif_make_atom(env, Value); }
@@ -373,18 +350,18 @@ static int on_nif_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
     ErlNifResourceFlags flags = (ErlNifResourceFlags)(ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER);
     HIREDIS_CONTEXT_RESOURCE = enif_open_resource_type(
                                 env,
-                                NULL, 
-                                "hierdis_context_resource", 
-                                &hiredis_context_handle_dtor, 
+                                NULL,
+                                "hierdis_context_resource",
+                                &hiredis_context_handle_dtor,
                                 flags,
                                 NULL
                             );
 
     HIREDIS_REPLY_RESOURCE = enif_open_resource_type(
                                 env,
-                                NULL, 
-                                "hierdis_reply_resource", 
-                                &hiredis_reply_handle_dtor, 
+                                NULL,
+                                "hierdis_reply_resource",
+                                &hiredis_reply_handle_dtor,
                                 flags,
                                 NULL
                             );
