@@ -17,38 +17,44 @@ This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis),
 #####Get a Redis connection.
 
 ```erl
-1> {ok,C} = hierdis:connect_unix("/tmp/redis.sock").
+> {ok,C} = hierdis:connect_unix("/tmp/redis.sock").
+{ok,<<>>}
+
+> {ok,C2} = hierdis:connect("127.0.0.1", 6379).
+{ok,<<>>}
+
+> {ok,C3} = hierdis:connect("127.0.0.1", 6379, 5000).
 {ok,<<>>}
 ```
 
 #####Issue single commands to Redis as an `iolist`.
 
 ```erl
-2> hierdis:command(C, ["SET", "foo", "bar"]).
+> hierdis:command(C, ["SET", "foo", "bar"]).
 {ok,<<"OK">>}
-3> hierdis:command(C, ["GET", "foo"]).
+> hierdis:command(C, ["GET", "foo"]).
 {ok,<<"bar">>}
-4> hierdis:command(C, ["MSET" | ["key1", "1", "key2", "2", "key3", "3"]]).
+> hierdis:command(C, ["MSET" | ["key1", "1", "key2", "2", "key3", "3"]]).
 {ok,<<"OK">>}
-5> hierdis:command(C, ["GET", "key1"]).
+> hierdis:command(C, ["GET", "key1"]).
 {ok,<<"1">>}
-6> hierdis:command(C, ["GET", "key3"]).
+> hierdis:command(C, ["GET", "key3"]).
 {ok,<<"3">>}
-7> hierdis:command(C, ["MGET" | ["key1", "key2", "key3"]]).
+> hierdis:command(C, ["MGET" | ["key1", "key2", "key3"]]).
 {ok,[<<"1">>,<<"2">>,<<"3">>]}
 ```
 
 #####Pipeline commands to Redis as a `list` of `iolist`s.
 
 ```erl
-8> hierdis:pipeline(C, [
-8>     ["SET", "foo", "bar"],
-8>     ["GET", "foo"],
-8>     ["MSET" | ["key1", "1", "key2", "2", "key3", "3"]],
-8>     ["GET", "key1"],
-8>     ["GET", "key3"],
-8>     ["MGET" | ["key1", "key2", "key3"]]
-8> ]).
+> hierdis:pipeline(C, [
+>     ["SET", "foo", "bar"],
+>     ["GET", "foo"],
+>     ["MSET" | ["key1", "1", "key2", "2", "key3", "3"]],
+>     ["GET", "key1"],
+>     ["GET", "key3"],
+>     ["MGET" | ["key1", "key2", "key3"]]
+> ]).
 [{ok,<<"OK">>},
  {ok,<<"bar">>},
  {ok,<<"OK">>},
@@ -60,40 +66,40 @@ This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis),
 #####Execute a transaction pipeline against Redis as a `list` of `iolist`s.
 
 ```erl
-9> hierdis:transaction(C, [
-9>     ["SET", "foo", "bar"],
-9>     ["GET", "foo"],
-9>     ["MSET" | ["key1", "1", "key2", "2", "key3", "3"]],
-9>     ["MGET" | ["key1", "key2", "key3"]]
-9> ]).
+> hierdis:transaction(C, [
+>     ["SET", "foo", "bar"],
+>     ["GET", "foo"],
+>     ["MSET" | ["key1", "1", "key2", "2", "key3", "3"]],
+>     ["MGET" | ["key1", "key2", "key3"]]
+> ]).
 {ok,[<<"OK">>,<<"bar">>,<<"OK">>,[<<"1">>,<<"2">>,<<"3">>]]}
-10> hierdis:transaction(C, [
-10>     ["SET", "foo", "bar"],
-10>     ["GET", "foo"],
-10>     ["CRASHER!" | ["ka", "blooey"]],
-10>     ["MGET" | ["key1", "key2", "key3"]]
-10> ]).
+> hierdis:transaction(C, [
+>     ["SET", "foo", "bar"],
+>     ["GET", "foo"],
+>     ["CRASHER!" | ["ka", "blooey"]],
+>     ["MGET" | ["key1", "key2", "key3"]]
+> ]).
 {error,{redis_reply_error,"EXECABORT Transaction discarded because of previous errors."}}
 ```
 
 #####Manually append commands and get replies.
 
 ```erl
-11> hierdis:append_command(C, ["MULTI"]).
+> hierdis:append_command(C, ["MULTI"]).
 {ok,15}
-12> hierdis:append_command(C, ["SET", "foo", "pipelined"]).
+> hierdis:append_command(C, ["SET", "foo", "pipelined"]).
 {ok,52}
-13> hierdis:append_command(C, ["SET", "bar", "linedpipe"]).
+> hierdis:append_command(C, ["SET", "bar", "linedpipe"]).
 {ok,89}
-14> hierdis:append_command(C, ["EXEC"]).
+> hierdis:append_command(C, ["EXEC"]).
 {ok,183}
-15> hierdis:get_reply(C).
+> hierdis:get_reply(C).
 {ok,<<"OK">>}
-16> hierdis:get_reply(C).
+> hierdis:get_reply(C).
 {ok,<<"QUEUED">>}
-17> hierdis:get_reply(C).
+> hierdis:get_reply(C).
 {ok,<<"QUEUED">>}
-18> hierdis:get_reply(C).
+> hierdis:get_reply(C).
 {ok,[<<"OK">>,<<"OK">>,<<"OK">>,
      [<<"pipelined">>,<<"linedpipe">>,<<"ploplooned">>]]}
 ```
