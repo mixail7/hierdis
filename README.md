@@ -1,4 +1,4 @@
-## Overview
+# Hierdis
 
 High-performance Erlang client for the Redis key-value store.
 
@@ -6,15 +6,11 @@ hierdis presents a simple API similar to the synchronous API exposed by the well
 
 Using this approach also allows hierdis to communicate with Redis via unix domain sockets, which by itself can provide a 50% increase in throughput over TCP.
 
-## Installation
+This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis), which lacks these important features:
 
-**Pre-requisites:** You must already have Erlang R15B01 or later installed on your machine.
-
-	$ git clone git@github.com:nathanaschbacher/hierdis.git .
-	$ cd hierdis
-	$ ./rebar compile
-
-This should automatically build the `hiredis` dependencies and move the headers and libraries to the `priv/` directory.
+* auto-reconnect
+* timeout on commands
+* tests
 
 ## Usage
 
