@@ -260,6 +260,13 @@ static ERL_NIF_TERM command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
         reply = redisCommandArgv(handle->context, hiredis_argc, hiredis_argv, hiredis_argv_lengths);
 
+        if(handle->context != NULL)
+        {
+            // return to default timeout
+            struct timeval unlimited = {0, 0};
+            redisSetTimeout(handle->context, unlimited);
+        }
+
         if (handle->context != NULL && handle->context->err)
         {
             return hierdis_make_error(env, handle->context->err, handle->context->errstr);
