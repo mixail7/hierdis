@@ -29,6 +29,7 @@
          connect_unix/1,
          connect_unix/2,
          command/2,
+         command/3,
          pipeline/2,
          transaction/2,
          append_command/2,
@@ -71,6 +72,9 @@ connect_unix(_SocketPath, _Timeout) ->
 -spec command(Context::binary(), CommandArgs::iolist()) -> {atom(), binary()} | error().
 command(_Context, _CommandArgs) ->
 	erlang:nif_error({error, not_loaded}).
+-spec command(Context::binary(), CommandArgs::iolist(), Timeout::integer()) -> {atom(), binary()} | error().
+command(_Context, _CommandArgs, _Timeout) ->
+    erlang:nif_error({error, not_loaded}).
 
 -spec pipeline(Context::binary(), CommandList::iolist()) -> {atom(), list()} | error().
 pipeline(Context, CommandList) ->

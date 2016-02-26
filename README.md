@@ -45,6 +45,8 @@ This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis).
 {ok,<<"3">>}
 > hierdis:command(C, ["MGET" | ["key1", "key2", "key3"]]).
 {ok,[<<"1">>,<<"2">>,<<"3">>]}
+> hierdis:command(C, ["GET", "foo"], 5000).
+{ok,<<"bar">>}
 ```
 
 #####Pipeline commands to Redis as a `list` of `iolist`s.

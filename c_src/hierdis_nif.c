@@ -122,10 +122,17 @@ static ERL_NIF_TERM connect(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     {
         hiredis_context_handle* handle = (hiredis_context_handle*)enif_alloc_resource(HIREDIS_CONTEXT_RESOURCE, sizeof(hiredis_context_handle));
 
-        if(argc == 3 && enif_get_int(env, argv[2], &timeout))
+        if(argc == 3)
         {
-            struct timeval sec = {timeout, 0}; // timeout in num seconds
-            handle->context = redisConnectWithTimeout(ip, port, sec);
+            if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
+            {
+                struct timeval sec = {timeout, 0}; // timeout in num seconds
+                handle->context = redisConnectWithTimeout(ip, port, sec);
+            }
+            else
+            {
+                return enif_make_badarg(env);
+            }
         }
         else
         {
@@ -166,10 +173,17 @@ static ERL_NIF_TERM connect_unix(ErlNifEnv* env, int argc, const ERL_NIF_TERM ar
     if(enif_get_string(env, argv[0], socket_path, length+1, ERL_NIF_LATIN1))
     {
         hiredis_context_handle* handle = (hiredis_context_handle*)enif_alloc_resource(HIREDIS_CONTEXT_RESOURCE, sizeof(hiredis_context_handle));
-        if(argc == 3 && enif_get_int(env, argv[2], &timeout))
+        if(argc == 3)
         {
-            struct timeval sec = {timeout, 0}; // timeout in num seconds
-            handle->context = redisConnectUnixWithTimeout(socket_path, sec);
+            if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
+            {
+                struct timeval sec = {timeout, 0}; // timeout in num seconds
+                handle->context = redisConnectUnixWithTimeout(socket_path, sec);
+            }
+            else
+            {
+                return enif_make_badarg(env);
+            }
         }
         else
         {
@@ -217,6 +231,7 @@ static ERL_NIF_TERM command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     hiredis_context_handle* handle;
     redisReply* reply;
     unsigned int hiredis_argc;
+    int timeout;
 
     if (!enif_get_list_length(env, argv[1], &hiredis_argc))
     {
@@ -229,6 +244,20 @@ static ERL_NIF_TERM command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     if(enif_get_resource(env, argv[0], HIREDIS_CONTEXT_RESOURCE, (void**)&handle))
     {
         list_to_hiredis_argv(env, argv[1], hiredis_argc, hiredis_argv, hiredis_argv_lengths);
+
+        if(argc == 3)
+        {
+            if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
+            {
+                struct timeval sec = {timeout, 0}; // timeout in num seconds
+                redisSetTimeout(handle->context, sec);
+            }
+            else
+            {
+                return enif_make_badarg(env);
+            }
+        }
+
         reply = redisCommandArgv(handle->context, hiredis_argc, hiredis_argv, hiredis_argv_lengths);
 
         if (handle->context != NULL && handle->context->err)
@@ -318,6 +347,7 @@ static ErlNifFunc nif_funcs[] =
     {"connect_unix", 2, connect_unix},
 
     {"command", 2, command},
+    {"command", 3, command},
     {"append_command", 2, append_command},
 
     {"get_reply", 1, get_reply}
