@@ -6,3 +6,5 @@ lib:
     - .:/mylib
   links:
     - redis
+  environment:
+    PROJECT: hierdis

@@ -21,12 +21,12 @@ init() ->
                  {error, bad_name} ->
                      case code:which(?MODULE) of
                          Filename when is_list(Filename) ->
-                             filename:join([filename:dirname(Filename),"../priv", "hierdis_nif"]);
+                             filename:join([filename:dirname(Filename),"../priv", "hierdis"]);
                          _ ->
-                             filename:join("../priv", "hierdis_nif")
+                             filename:join("../priv", "hierdis")
                      end;
                  Dir ->
-                     filename:join(Dir, "hierdis_nif")
+                     filename:join(Dir, "hierdis")
              end,
     erlang:load_nif(SoName, 0).
 

@@ -14,7 +14,6 @@ C_SRC_DIR = $(CURDIR)
 C_SRC_OUTPUT ?= $(CURDIR)/../priv/$(PROJECT).so
 
 HIREDIS_VSN ?= v0.11.0
-HIREDIS_LIBRARY_VERSION ?= 0.10
 HIREDIS_DIR ?= $(C_SRC_DIR)/hiredis
 HIREDIS_GIT ?= git://github.com/redis/hiredis.git
 
@@ -86,6 +85,5 @@ install_deps:
 				git clone -n $(HIREDIS_GIT) $(HIREDIS_DIR); \
 				(cd $(HIREDIS_DIR) && \
 					git checkout -q $(HIREDIS_VSN) && \
-					make && \
-					ln -s libhiredis.so "libhiredis.so.$(HIREDIS_LIBRARY_VERSION)"); \
+					make static); \
 		fi

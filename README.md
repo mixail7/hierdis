@@ -6,7 +6,7 @@ hierdis presents a simple API similar to the synchronous API exposed by the well
 
 Using this approach also allows hierdis to communicate with Redis via unix domain sockets, which by itself can provide a 50% increase in throughput over TCP.
 
-This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis), which lacks these important features:
+This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis). The latter seems abandoned and it lacks these important features:
 
 * **auto-reconnect**
 * **timeout on commands**
