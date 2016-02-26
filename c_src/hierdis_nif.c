@@ -126,8 +126,8 @@ static ERL_NIF_TERM connect(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         {
             if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
             {
-                struct timeval sec = {timeout, 0}; // timeout in num seconds
-                handle->context = redisConnectWithTimeout(ip, port, sec);
+                struct timeval tv = timeout_to_timeval(timeout);
+                handle->context = redisConnectWithTimeout(ip, port, tv);
             }
             else
             {
@@ -177,8 +177,8 @@ static ERL_NIF_TERM connect_unix(ErlNifEnv* env, int argc, const ERL_NIF_TERM ar
         {
             if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
             {
-                struct timeval sec = {timeout, 0}; // timeout in num seconds
-                handle->context = redisConnectUnixWithTimeout(socket_path, sec);
+                struct timeval tv = timeout_to_timeval(timeout);
+                handle->context = redisConnectUnixWithTimeout(socket_path, tv);
             }
             else
             {
@@ -249,8 +249,8 @@ static ERL_NIF_TERM command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         {
             if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
             {
-                struct timeval sec = {timeout, 0}; // timeout in num seconds
-                redisSetTimeout(handle->context, sec);
+                struct timeval tv = timeout_to_timeval(timeout);
+                redisSetTimeout(handle->context, tv);
             }
             else
             {
@@ -420,6 +420,14 @@ static int on_nif_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
                             );
 
     return 0;
+}
+
+static struct timeval timeout_to_timeval(int timeout)
+{
+    int tv_sec = timeout / 1000;
+    int tv_usec = (timeout % 1000) * 1000;
+    struct timeval tv = {tv_sec, tv_usec};
+    return tv;
 }
 
 ERL_NIF_INIT(hierdis, nif_funcs, on_nif_load, NULL, NULL, NULL);
