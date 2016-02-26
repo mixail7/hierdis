@@ -56,7 +56,7 @@ init() ->
 
 
 %% @doc: Connects to Redis on ip:port (timeout in milliseconds can be passed as
-%% a 3rd parameter).
+%% a 3rd parameter). Default timeout: 0 (unlimited).
 -spec connect(Ip::string(), Port::integer()) -> {atom(), binary()} | error().
 connect(_Ip, _Port) ->
     erlang:nif_error({error, not_loaded}).
@@ -65,7 +65,7 @@ connect(_Ip, _Port, _Timeout) ->
     erlang:nif_error({error, not_loaded}).
 
 %% @doc: Connects to Redis via unix domain socket (timeout in milliseconds can
-%% be passed as a 3rd parameter).
+%% be passed as a 3rd parameter). Default timeout: 0 (unlimited).
 -spec connect_unix(SocketPath::string()) -> {atom(), binary()} | error().
 connect_unix(_SocketPath) ->
     erlang:nif_error({error, not_loaded}).
@@ -74,7 +74,7 @@ connect_unix(_SocketPath, _Timeout) ->
     erlang:nif_error({error, not_loaded}).
 
 %% @doc: Executes given command ("GET", "SET", etc.; timeout in milliseconds
-%% can be passed as a 3rd parameter)
+%% can be passed as a 3rd parameter). Default timeout: 0 (unlimited).
 -spec command(Context::binary(), CommandArgs::iolist()) -> {atom(), binary()} | error().
 command(_Context, _CommandArgs) ->
 	erlang:nif_error({error, not_loaded}).
