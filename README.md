@@ -9,7 +9,7 @@ Using this approach also allows hierdis to communicate with Redis via unix domai
 This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis). The latter seems abandoned and it lacks these important features:
 
 * **auto-reconnect**
-* **timeout on commands**
+* **timeouts**
 * tests
 
 ## Usage
@@ -107,6 +107,15 @@ This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis).
 > hierdis:get_reply(C).
 {ok,[<<"OK">>,<<"OK">>,<<"OK">>,
      [<<"pipelined">>,<<"linedpipe">>,<<"ploplooned">>]]}
+```
+
+#####Set read/write timeout once for the connection
+
+If you don't want to set timeout for individual operations, you can set it once for all read/write operations for the lifetime of the connection.
+
+```erl
+> hierdis:set_timeout(C, 5000). % ms
+ok
 ```
 
 ## Performance Comparison
