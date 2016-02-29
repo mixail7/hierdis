@@ -257,6 +257,7 @@ static ERL_NIF_TERM command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
             if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
             {
                 struct timeval tv = timeout_to_timeval(timeout);
+                // ignoring possible errors, because command is what really matters here
                 redisSetTimeout(handle->context, tv);
             }
             else
@@ -357,6 +358,36 @@ static ERL_NIF_TERM get_reply(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
     }
 };
 
+static ERL_NIF_TERM set_timeout(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    hiredis_context_handle* handle;
+    int timeout;
+
+    if(enif_get_resource(env, argv[0], HIREDIS_CONTEXT_RESOURCE, (void**)&handle))
+    {
+        if(enif_get_int(env, argv[1], &timeout) && timeout >= 0)
+        {
+            struct timeval tv = timeout_to_timeval(timeout);
+            if (redisSetTimeout(handle->context, tv) == REDIS_OK)
+            {
+                return ATOM_OK;
+            }
+            else
+            {
+                return ATOM_ERROR;
+            }
+        }
+        else
+        {
+            return enif_make_badarg(env);
+        }
+    }
+    else
+    {
+        return enif_make_badarg(env);
+    }
+};
+
 static ErlNifFunc nif_funcs[] =
 {
     {"connect", 2, connect},
@@ -368,7 +399,9 @@ static ErlNifFunc nif_funcs[] =
     {"command", 3, command},
     {"append_command", 2, append_command},
 
-    {"get_reply", 1, get_reply}
+    {"get_reply", 1, get_reply},
+
+    {"set_timeout", 2, set_timeout}
 };
 
 void hierdis_free_reply(void *reply)

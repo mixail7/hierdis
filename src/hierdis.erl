@@ -31,9 +31,12 @@
          command/2,
          command/3,
          pipeline/2,
+         pipeline/3,
          transaction/2,
+         transaction/3,
          append_command/2,
-         get_reply/1]).
+         get_reply/1,
+         set_timeout/2]).
 
 -include("hierdis.hrl").
 
@@ -82,15 +85,36 @@ command(_Context, _CommandArgs) ->
 command(_Context, _CommandArgs, _Timeout) ->
     erlang:nif_error({error, not_loaded}).
 
+%% @doc: Sends given commands in a pipeline (timeout in milliseconds can be
+%% passed as a 3rd parameter). Default timeout: 0 (unlimited).
 -spec pipeline(Context::binary(), CommandList::iolist()) -> {atom(), list()} | error().
 pipeline(Context, CommandList) ->
     PipelineLength = pipe_builder(pipeline, Context, CommandList, 0),
     pipe_cleaner(pipeline, Context, [], PipelineLength).
+-spec pipeline(Context::binary(), CommandList::iolist(), Timeout::integer()) -> {atom(), list()} | error().
+pipeline(Context, CommandList, Timeout) when is_integer(Timeout), Timeout >= 0 ->
+    set_timeout(Context, Timeout div length(CommandList)),
+    try
+        pipeline(Context, CommandList)
+    after
+        set_timeout(Context, 0)
+    end.
 
+%% @doc: Wraps given commands in a transaction statement (timeout in
+%% milliseconds can be passed as a 3rd parameter). Default timeout: 0
+%% (unlimited).
 -spec transaction(Context::binary(), CommandArgs::iolist()) -> {atom(), list()} | error().
 transaction(Context, CommandList) ->
     TransactionLength = pipe_builder(transaction, Context, CommandList, 0),
     pipe_cleaner(transaction, Context, [], TransactionLength).
+-spec transaction(Context::binary(), CommandArgs::iolist(), Timeout::integer()) -> {atom(), list()} | error().
+transaction(Context, CommandList, Timeout) when is_integer(Timeout), Timeout >= 0 ->
+    set_timeout(Context, Timeout div length(CommandList)),
+    try
+        transaction(Context, CommandList)
+    after
+        set_timeout(Context, 0)
+    end.
 
 %% @private
 pipe_builder(pipeline, _Context, [], Counter) ->
@@ -122,3 +146,8 @@ append_command(_Context, _CommandArgs) ->
 -spec get_reply(Context::binary()) -> {atom(), binary()} | error().
 get_reply(_Context) ->
 	erlang:nif_error({error, not_loaded}).
+
+%% @doc: Sets read/write timeout for all subsequent operations (0 means unlimited).
+-spec set_timeout(Context::binary(), Timeout::integer()) -> ok | error.
+set_timeout(_Context, _Timeout) ->
+    erlang:nif_error({error, not_loaded}).
