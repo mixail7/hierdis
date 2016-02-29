@@ -13,7 +13,7 @@ ERL_INTERFACE_LIB_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~s
 C_SRC_DIR = $(CURDIR)
 C_SRC_OUTPUT ?= $(CURDIR)/../priv/$(PROJECT).so
 
-HIREDIS_VSN ?= v0.11.0
+HIREDIS_VSN ?= v0.13.3
 HIREDIS_DIR ?= $(C_SRC_DIR)/hiredis
 HIREDIS_GIT ?= git://github.com/redis/hiredis.git
 
