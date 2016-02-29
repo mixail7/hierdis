@@ -118,6 +118,10 @@ If you don't want to set timeout for individual operations, you can set it once 
 ok
 ```
 
+## Reconnecting on Redis down / network failure / timeout / etc
+
+The general behavior is very similar to [eredis reconnecting](https://github.com/wooga/eredis#reconnecting-on-redis-down--network-failure--timeout--etc), except the fact that this client is not running in background, therefore won't be trying to reconnect every N seconds. Instead, it will try to reconnect before every operation (command, pipeline, etc.).
+
 ## Performance Comparison
 
 On a MacBook Air equipped with a dual-core 2.0Ghz Core i7 CPU [hierdis](https://github.com/nathanaschbacher/hierdis) achieves __over 3x the throughput__ and sees __5x lower latency__ compared to [eredis](https://github.com/wooga/eredis) using 1 byte values.  When increasing the size of the stored values to 10 kb the performance of hierdis remained basically constant, and eredis performance cut in half.
