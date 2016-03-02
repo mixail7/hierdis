@@ -60,38 +60,38 @@ init() ->
 
 %% @doc: Connects to Redis on ip:port (timeout in milliseconds can be passed as
 %% a 3rd parameter). Default timeout: 0 (unlimited).
--spec connect(Ip::string(), Port::integer()) -> {atom(), binary()} | error().
+-spec connect(Ip::string(), Port::integer()) -> {'ok', binary()} | error().
 connect(_Ip, _Port) ->
     erlang:nif_error({error, not_loaded}).
--spec connect(Ip::string(), Port::integer(), Timeout::integer()) -> {atom(), binary()} | error().
+-spec connect(Ip::string(), Port::integer(), Timeout::integer()) -> {'ok', binary()} | error().
 connect(_Ip, _Port, _Timeout) ->
     erlang:nif_error({error, not_loaded}).
 
 %% @doc: Connects to Redis via unix domain socket (timeout in milliseconds can
 %% be passed as a 3rd parameter). Default timeout: 0 (unlimited).
--spec connect_unix(SocketPath::string()) -> {atom(), binary()} | error().
+-spec connect_unix(SocketPath::string()) -> {'ok', binary()} | error().
 connect_unix(_SocketPath) ->
     erlang:nif_error({error, not_loaded}).
--spec connect_unix(SocketPath::string(), Timeout::integer()) -> {atom(), binary()} | error().
+-spec connect_unix(SocketPath::string(), Timeout::integer()) -> {'ok', binary()} | error().
 connect_unix(_SocketPath, _Timeout) ->
     erlang:nif_error({error, not_loaded}).
 
 %% @doc: Executes given command ("GET", "SET", etc.; timeout in milliseconds
 %% can be passed as a 3rd parameter). Default timeout: 0 (unlimited).
--spec command(Context::binary(), CommandArgs::iolist()) -> {atom(), binary()} | error().
+-spec command(Context::binary(), CommandArgs::iolist()) -> {'ok', term()} | error().
 command(_Context, _CommandArgs) ->
 	erlang:nif_error({error, not_loaded}).
--spec command(Context::binary(), CommandArgs::iolist(), Timeout::integer()) -> {atom(), binary()} | error().
+-spec command(Context::binary(), CommandArgs::iolist(), Timeout::integer()) -> {'ok', term()} | error().
 command(_Context, _CommandArgs, _Timeout) ->
     erlang:nif_error({error, not_loaded}).
 
 %% @doc: Sends given commands in a pipeline (timeout in milliseconds can be
 %% passed as a 3rd parameter). Default timeout: 0 (unlimited).
--spec pipeline(Context::binary(), CommandList::iolist()) -> {atom(), list()} | error().
+-spec pipeline(Context::binary(), CommandList::iolist()) -> [{'ok', term()} | error()].
 pipeline(Context, CommandList) ->
     PipelineLength = pipe_builder(pipeline, Context, CommandList, 0),
     pipe_cleaner(pipeline, Context, [], PipelineLength).
--spec pipeline(Context::binary(), CommandList::iolist(), Timeout::integer()) -> {atom(), list()} | error().
+-spec pipeline(Context::binary(), CommandList::iolist(), Timeout::integer()) -> [{'ok', term()} | error()].
 pipeline(Context, CommandList, Timeout) when is_integer(Timeout), Timeout >= 0 ->
     set_timeout(Context, Timeout div length(CommandList)),
     try
@@ -103,11 +103,11 @@ pipeline(Context, CommandList, Timeout) when is_integer(Timeout), Timeout >= 0 -
 %% @doc: Wraps given commands in a transaction statement (timeout in
 %% milliseconds can be passed as a 3rd parameter). Default timeout: 0
 %% (unlimited).
--spec transaction(Context::binary(), CommandArgs::iolist()) -> {atom(), list()} | error().
+-spec transaction(Context::binary(), CommandArgs::iolist()) -> [{'ok', term()} | error()].
 transaction(Context, CommandList) ->
     TransactionLength = pipe_builder(transaction, Context, CommandList, 0),
     pipe_cleaner(transaction, Context, [], TransactionLength).
--spec transaction(Context::binary(), CommandArgs::iolist(), Timeout::integer()) -> {atom(), list()} | error().
+-spec transaction(Context::binary(), CommandArgs::iolist(), Timeout::integer()) -> [{'ok', term()} | error()].
 transaction(Context, CommandList, Timeout) when is_integer(Timeout), Timeout >= 0 ->
     set_timeout(Context, Timeout div length(CommandList)),
     try
@@ -139,11 +139,11 @@ pipe_cleaner(Scheme, Context, Acc, Counter) ->
     pipe_cleaner(Scheme, Context, [get_reply(Context)|Acc], Counter-1).
 
 
--spec append_command(Context::binary(), CommandArgs::iolist()) -> {atom(), integer()} | error().
+-spec append_command(Context::binary(), CommandArgs::iolist()) -> {'ok', integer()} | error().
 append_command(_Context, _CommandArgs) ->
     erlang:nif_error({error, not_loaded}).
 
--spec get_reply(Context::binary()) -> {atom(), binary()} | error().
+-spec get_reply(Context::binary()) -> {'ok', term()} | error().
 get_reply(_Context) ->
 	erlang:nif_error({error, not_loaded}).
 
