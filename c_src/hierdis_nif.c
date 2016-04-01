@@ -393,7 +393,7 @@ static ERL_NIF_TERM set_timeout(ErlNifEnv* env, int argc, const ERL_NIF_TERM arg
         {
             if(REDIS_ERR == redisReconnect(handle->context))
             {
-                return hierdis_make_error(env, handle->context->err, handle->context->errstr);
+                return ATOM_ERROR;
             }
         }
 
