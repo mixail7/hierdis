@@ -22,5 +22,6 @@
 % SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 -type error() :: {error, {Code::atom(), Reason::string()}}.
+-type context() :: binary().
 -define(TRANSACTION_BEGIN, <<"MULTI">>).
 -define(TRANSACTION_END, <<"EXEC">>).
