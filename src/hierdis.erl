@@ -165,7 +165,7 @@ build_transaction_pipe(Context, [Command|Rest], TimeoutPerCommand, Pipe) ->
     ok = unsafe_append_command(Context, Command, TimeoutPerCommand),
     build_transaction_pipe(Context, Rest, TimeoutPerCommand, [ok | Pipe]).
 
--spec clean_transaction_pipe(context(), pipe(), non_neg_integer(), list()) -> list().
+-spec clean_transaction_pipe(context(), pipe(), non_neg_integer(), list()) -> {'ok', term()} | error().
 clean_transaction_pipe(Context, Pipe, TimeoutPerCommand, ReplyAcc) ->
     Replies = clean_pipe(Context, Pipe, TimeoutPerCommand, ReplyAcc),
     lists:last(Replies).
@@ -180,7 +180,7 @@ build_pipe(Context, [Command|Rest], TimeoutPerCommand, Pipe) ->
     end,
     build_pipe(Context, Rest, TimeoutPerCommand, [Result | Pipe]).
 
--spec clean_pipe(context(), pipe(), non_neg_integer(), list()) -> list().
+-spec clean_pipe(context(), pipe(), non_neg_integer(), list()) -> [{'ok', term()} | error()].
 clean_pipe(_, [], _, ReplyAcc) ->
     lists:reverse(ReplyAcc);
 clean_pipe(Context, [ok | RestOfPipe], TimeoutPerCommand, ReplyAcc) ->
