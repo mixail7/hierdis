@@ -35,10 +35,14 @@
          transaction/2,
          transaction/3,
          append_command/2,
+         append_command/3,
          get_reply/1,
+         get_reply/2,
          set_timeout/2]).
 
 -include("hierdis.hrl").
+
+-type pipe() :: [ok | {error, term()}].
 
 -on_load(init/0).
 
@@ -60,94 +64,134 @@ init() ->
 
 %% @doc: Connects to Redis on ip:port (timeout in milliseconds can be passed as
 %% a 3rd parameter). Default timeout: 0 (unlimited).
--spec connect(Ip::string(), Port::integer()) -> {'ok', binary()} | error().
+-spec connect(string(), integer()) -> {'ok', binary()} | error().
 connect(_Ip, _Port) ->
     erlang:nif_error({error, not_loaded}).
--spec connect(Ip::string(), Port::integer(), Timeout::integer()) -> {'ok', binary()} | error().
+
+-spec connect(string(), integer(), non_neg_integer()) -> {'ok', binary()} | error().
 connect(_Ip, _Port, _Timeout) ->
     erlang:nif_error({error, not_loaded}).
 
 %% @doc: Connects to Redis via unix domain socket (timeout in milliseconds can
 %% be passed as a 3rd parameter). Default timeout: 0 (unlimited).
--spec connect_unix(SocketPath::string()) -> {'ok', binary()} | error().
+-spec connect_unix(string()) -> {'ok', binary()} | error().
 connect_unix(_SocketPath) ->
     erlang:nif_error({error, not_loaded}).
--spec connect_unix(SocketPath::string(), Timeout::integer()) -> {'ok', binary()} | error().
+
+-spec connect_unix(string(), non_neg_integer()) -> {'ok', binary()} | error().
 connect_unix(_SocketPath, _Timeout) ->
     erlang:nif_error({error, not_loaded}).
 
 %% @doc: Executes given command ("GET", "SET", etc.; timeout in milliseconds
 %% can be passed as a 3rd parameter). Default timeout: 0 (unlimited).
--spec command(Context::binary(), CommandArgs::iolist()) -> {'ok', term()} | error().
+-spec command(context(), iolist()) -> {'ok', term()} | error().
 command(_Context, _CommandArgs) ->
 	erlang:nif_error({error, not_loaded}).
--spec command(Context::binary(), CommandArgs::iolist(), Timeout::integer()) -> {'ok', term()} | error().
+
+-spec command(context(), iolist(), non_neg_integer()) -> {'ok', term()} | error().
 command(_Context, _CommandArgs, _Timeout) ->
     erlang:nif_error({error, not_loaded}).
 
 %% @doc: Sends given commands in a pipeline (timeout in milliseconds can be
 %% passed as a 3rd parameter). Default timeout: 0 (unlimited).
--spec pipeline(Context::binary(), CommandList::iolist()) -> [{'ok', term()} | error()].
+-spec pipeline(context(), iolist()) -> [{'ok', term()} | error()].
 pipeline(Context, CommandList) ->
-    PipelineLength = pipe_builder(pipeline, Context, CommandList, 0),
-    pipe_cleaner(pipeline, Context, [], PipelineLength).
--spec pipeline(Context::binary(), CommandList::iolist(), Timeout::integer()) -> [{'ok', term()} | error()].
+    pipeline(Context, CommandList, 0).
+
+-spec pipeline(context(), iolist(), non_neg_integer()) -> [{'ok', term()} | error()].
 pipeline(Context, CommandList, Timeout) when is_integer(Timeout), Timeout >= 0 ->
-    set_timeout(Context, Timeout div length(CommandList)),
-    try
-        pipeline(Context, CommandList)
-    after
-        set_timeout(Context, 0)
-    end.
+    TimeoutPerCommand = case Timeout =:= 0 of
+        false -> Timeout div length(CommandList);
+        true -> Timeout
+    end,
+    Pipe = build_pipe(Context, CommandList, TimeoutPerCommand, []),
+    clean_pipe(Context, Pipe, TimeoutPerCommand, []).
 
 %% @doc: Wraps given commands in a transaction statement (timeout in
 %% milliseconds can be passed as a 3rd parameter). Default timeout: 0
 %% (unlimited).
--spec transaction(Context::binary(), CommandArgs::iolist()) -> [{'ok', term()} | error()].
+-spec transaction(context(), iolist()) -> {'ok', [term()]} | error().
 transaction(Context, CommandList) ->
-    TransactionLength = pipe_builder(transaction, Context, CommandList, 0),
-    pipe_cleaner(transaction, Context, [], TransactionLength).
--spec transaction(Context::binary(), CommandArgs::iolist(), Timeout::integer()) -> [{'ok', term()} | error()].
+    transaction(Context, CommandList, 0).
+
+-spec transaction(context(), iolist(), non_neg_integer()) -> {'ok', [term()]} | error().
 transaction(Context, CommandList, Timeout) when is_integer(Timeout), Timeout >= 0 ->
-    set_timeout(Context, Timeout div length(CommandList)),
+    TimeoutPerCommand = case Timeout =:= 0 of
+        false -> Timeout div length(CommandList);
+        true -> Timeout
+    end,
     try
-        transaction(Context, CommandList)
-    after
-        set_timeout(Context, 0)
+        build_transaction_pipe(Context, CommandList, TimeoutPerCommand, [])
+    of
+        Pipe -> clean_transaction_pipe(Context, Pipe, TimeoutPerCommand, [])
+    catch
+        throw:{append_command_error, Error} -> Error
     end.
 
-%% @private
-pipe_builder(pipeline, _Context, [], Counter) ->
-    Counter;
-pipe_builder(transaction, Context, [Command|List], 0) ->
-    append_command(Context, [?TRANSACTION_BEGIN]),
-    append_command(Context, Command),
-    pipe_builder(transaction, Context, List, 2);
-pipe_builder(transaction, Context, [], Counter) ->
-    append_command(Context, [?TRANSACTION_END]),
-    Counter+1;
-pipe_builder(Scheme, Context, [Command|List], Counter) ->
-    append_command(Context, Command),
-    pipe_builder(Scheme, Context, List, Counter+1).
-
-%% @private
-pipe_cleaner(pipeline, _Context, Acc, 0) ->
-    lists:reverse(Acc);
-pipe_cleaner(transaction, Context, _Acc, 1) ->
-    get_reply(Context);
-pipe_cleaner(Scheme, Context, Acc, Counter) ->
-    pipe_cleaner(Scheme, Context, [get_reply(Context)|Acc], Counter-1).
-
-
--spec append_command(Context::binary(), CommandArgs::iolist()) -> {'ok', integer()} | error().
+-spec append_command(context(), iolist()) -> {'ok', integer()} | error().
 append_command(_Context, _CommandArgs) ->
     erlang:nif_error({error, not_loaded}).
 
--spec get_reply(Context::binary()) -> {'ok', term()} | error().
+-spec append_command(context(), iolist(), non_neg_integer()) -> {'ok', integer()} | error().
+append_command(_Context, _CommandArgs, _Timeout) ->
+    erlang:nif_error({error, not_loaded}).
+
+-spec get_reply(context()) -> {'ok', term()} | error().
 get_reply(_Context) ->
 	erlang:nif_error({error, not_loaded}).
 
+-spec get_reply(context(), non_neg_integer()) -> {'ok', term()} | error().
+get_reply(_Context, _Timeout) ->
+    erlang:nif_error({error, not_loaded}).
+
 %% @doc: Sets read/write timeout for all subsequent operations (0 means unlimited).
--spec set_timeout(Context::binary(), Timeout::integer()) -> ok | error.
+-spec set_timeout(context(), non_neg_integer()) -> ok | error.
 set_timeout(_Context, _Timeout) ->
     erlang:nif_error({error, not_loaded}).
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+
+-spec build_transaction_pipe(binary(), iolist(), non_neg_integer(), pipe()) -> pipe().
+build_transaction_pipe(Context, [Command|Rest], TimeoutPerCommand, []) ->
+    ok = unsafe_append_command(Context, [?TRANSACTION_BEGIN], TimeoutPerCommand),
+    ok = unsafe_append_command(Context, Command, TimeoutPerCommand),
+    build_transaction_pipe(Context, Rest, TimeoutPerCommand, [ok, ok]);
+build_transaction_pipe(Context, [], TimeoutPerCommand, Pipe) ->
+    ok = unsafe_append_command(Context, [?TRANSACTION_END], TimeoutPerCommand),
+    [ok | Pipe];
+build_transaction_pipe(Context, [Command|Rest], TimeoutPerCommand, Pipe) ->
+    ok = unsafe_append_command(Context, Command, TimeoutPerCommand),
+    build_transaction_pipe(Context, Rest, TimeoutPerCommand, [ok | Pipe]).
+
+-spec clean_transaction_pipe(context(), pipe(), non_neg_integer(), list()) -> list().
+clean_transaction_pipe(Context, Pipe, TimeoutPerCommand, ReplyAcc) ->
+    Replies = clean_pipe(Context, Pipe, TimeoutPerCommand, ReplyAcc),
+    lists:last(Replies).
+
+-spec build_pipe(binary(), iolist(), non_neg_integer(), pipe()) -> pipe().
+build_pipe(_, [], _, Pipe) ->
+    lists:reverse(Pipe);
+build_pipe(Context, [Command|Rest], TimeoutPerCommand, Pipe) ->
+    Result = case append_command(Context, Command, TimeoutPerCommand) of
+        {ok, _} -> ok;
+        Error = {error, _} -> Error
+    end,
+    build_pipe(Context, Rest, TimeoutPerCommand, [Result | Pipe]).
+
+-spec clean_pipe(context(), pipe(), non_neg_integer(), list()) -> list().
+clean_pipe(_, [], _, ReplyAcc) ->
+    lists:reverse(ReplyAcc);
+clean_pipe(Context, [ok | RestOfPipe], TimeoutPerCommand, ReplyAcc) ->
+    clean_pipe(Context, RestOfPipe, TimeoutPerCommand, [get_reply(Context, TimeoutPerCommand) | ReplyAcc]);
+clean_pipe(Context, [Error = {error, _} | RestOfPipe], TimeoutPerCommand, ReplyAcc) ->
+    clean_pipe(Context, RestOfPipe, TimeoutPerCommand, [Error | ReplyAcc]).
+
+%% @throws {append_command_error, Error :: error()}
+-spec unsafe_append_command(binary(), iolist(), non_neg_integer()) -> ok.
+unsafe_append_command(Context, CommandArgs, Timeout) ->
+    case append_command(Context, CommandArgs, Timeout) of
+        {ok, _} -> ok;
+        Error = {error, _} -> throw({append_command_error, Error})
+    end.

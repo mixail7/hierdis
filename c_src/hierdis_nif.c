@@ -306,6 +306,7 @@ static ERL_NIF_TERM append_command(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
 {
     hiredis_context_handle* handle;
     unsigned int hiredis_argc;
+    int timeout;
 
     if (!enif_get_list_length(env, argv[1], &hiredis_argc))
     {
@@ -330,7 +331,29 @@ static ERL_NIF_TERM append_command(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
             return enif_make_badarg(env);
         }
 
+        if(argc == 3)
+        {
+            if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
+            {
+                struct timeval tv = timeout_to_timeval(timeout);
+                // ignoring possible errors, because command is what really matters here
+                redisSetTimeout(handle->context, tv);
+            }
+            else
+            {
+                return enif_make_badarg(env);
+            }
+        }
+
         redisAppendCommandArgv(handle->context, hiredis_argc, hiredis_argv, hiredis_argv_lengths);
+
+        if(argc == 3 && handle->context != NULL)
+        {
+            // return to default timeout
+            struct timeval unlimited = {0, 0};
+            redisSetTimeout(handle->context, unlimited);
+        }
+
         if (handle->context != NULL && handle->context->err)
         {
             return hierdis_make_error(env, handle->context->err, handle->context->errstr);
@@ -349,6 +372,7 @@ static ERL_NIF_TERM append_command(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
 static ERL_NIF_TERM get_reply(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     hiredis_context_handle* handle;
+    int timeout;
 
     if(enif_get_resource(env, argv[0], HIREDIS_CONTEXT_RESOURCE, (void**)&handle))
     {
@@ -360,9 +384,31 @@ static ERL_NIF_TERM get_reply(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
             }
         }
 
+        if(argc == 2)
+        {
+            if(enif_get_int(env, argv[1], &timeout) && timeout >= 0)
+            {
+                struct timeval tv = timeout_to_timeval(timeout);
+                // ignoring possible errors, because command is what really matters here
+                redisSetTimeout(handle->context, tv);
+            }
+            else
+            {
+                return enif_make_badarg(env);
+            }
+        }
+
         redisReply* reply;
 
         redisGetReply(handle->context, (void*)&reply);
+
+        if(argc == 2 && handle->context != NULL)
+        {
+            // return to default timeout
+            struct timeval unlimited = {0, 0};
+            redisSetTimeout(handle->context, unlimited);
+        }
+
         if (handle->context != NULL && handle->context->err)
         {
             return hierdis_make_error(env, handle->context->err, handle->context->errstr);
@@ -393,7 +439,7 @@ static ERL_NIF_TERM set_timeout(ErlNifEnv* env, int argc, const ERL_NIF_TERM arg
         {
             if(REDIS_ERR == redisReconnect(handle->context))
             {
-                return hierdis_make_error(env, handle->context->err, handle->context->errstr);
+                return ATOM_ERROR;
             }
         }
 
@@ -430,8 +476,10 @@ static ErlNifFunc nif_funcs[] =
     {"command", 2, command},
     {"command", 3, command},
     {"append_command", 2, append_command},
+    {"append_command", 3, append_command},
 
     {"get_reply", 1, get_reply},
+    {"get_reply", 2, get_reply},
 
     {"set_timeout", 2, set_timeout}
 };
