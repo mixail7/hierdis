@@ -510,22 +510,6 @@ static ERL_NIF_TERM set_timeout(ErlNifEnv* env, int argc, const ERL_NIF_TERM arg
         return enif_make_badarg(env);
     }
 
-    if(handle->context->err) // attempt reconnect
-    {
-        if(REDIS_ERR == redisReconnect(handle->context))
-        {
-            return ATOM_ERROR;
-        }
-        else // reselect DB
-        {
-            redisReply* reply = redisSelect(handle->context, handle->db);
-            if (NULL == reply || reply->type == REDIS_REPLY_ERROR)
-            {
-                return ATOM_ERROR;
-            }
-        }
-    }
-
     int timeout;
     if(enif_get_int(env, argv[1], &timeout) && timeout >= 0)
     {
