@@ -115,6 +115,8 @@ ok
 
 The general behavior is very similar to [eredis reconnecting](https://github.com/wooga/eredis#reconnecting-on-redis-down--network-failure--timeout--etc), except the fact that this client is not running in background, therefore won't be trying to reconnect every N seconds. Instead, it will try to reconnect before every operation (command, pipeline, etc.).
 
+**Note that** if you don't set a timeout (using either `connect/4` or `connect_unix/3`), reconnect will block for some time (until your Redis shows up again).
+
 ## Performance Comparison
 
 On a MacBook Air equipped with a dual-core 2.0Ghz Core i7 CPU [hierdis](https://github.com/nathanaschbacher/hierdis) achieves __over 3x the throughput__ and sees __5x lower latency__ compared to [eredis](https://github.com/wooga/eredis) using 1 byte values.  When increasing the size of the stored values to 10 kb the performance of hierdis remained basically constant, and eredis performance cut in half.
