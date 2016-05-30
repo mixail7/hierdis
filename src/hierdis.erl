@@ -26,8 +26,10 @@
 
 -export([connect/2,
          connect/3,
+         connect/4,
          connect_unix/1,
          connect_unix/2,
+         connect_unix/3,
          command/2,
          command/3,
          pipeline/2,
@@ -62,24 +64,52 @@ init() ->
     erlang:load_nif(SoName, 0).
 
 
-%% @doc: Connects to Redis on ip:port (timeout in milliseconds can be passed as
-%% a 3rd parameter). Default timeout: 0 (unlimited).
+%% @doc: Connects to Redis on ip:port
+%%
+%% Example:
+%%
+%%     hierdis:connect("127.0.0.1", 6379, 2, 5000)
+%%
+%% Defaults:
+%%
+%%   - db: 0
+%%   - timeout: 0 (unlimited)
+%%
+%% Timeout is in milliseconds and can be passed as a 4th argument.
 -spec connect(string(), integer()) -> {'ok', binary()} | error().
 connect(_Ip, _Port) ->
     erlang:nif_error({error, not_loaded}).
 
 -spec connect(string(), integer(), non_neg_integer()) -> {'ok', binary()} | error().
-connect(_Ip, _Port, _Timeout) ->
+connect(_Ip, _Port, _DB) ->
     erlang:nif_error({error, not_loaded}).
 
-%% @doc: Connects to Redis via unix domain socket (timeout in milliseconds can
-%% be passed as a 3rd parameter). Default timeout: 0 (unlimited).
+-spec connect(string(), integer(), non_neg_integer(), non_neg_integer()) -> {'ok', binary()} | error().
+connect(_Ip, _Port, _DB, _Timeout) ->
+    erlang:nif_error({error, not_loaded}).
+
+%% @doc: Connects to Redis via unix domain socket.
+%%
+%% Example:
+%%
+%%     hierdis:connect_unix("tmp/sockets/redis.sock", 2, 5000)
+%%
+%% Defaults:
+%%
+%%   - db: 0
+%%   - timeout: 0 (unlimited)
+%%
+%% Timeout is in milliseconds and can be passed as a 4th argument.
 -spec connect_unix(string()) -> {'ok', binary()} | error().
 connect_unix(_SocketPath) ->
     erlang:nif_error({error, not_loaded}).
 
 -spec connect_unix(string(), non_neg_integer()) -> {'ok', binary()} | error().
-connect_unix(_SocketPath, _Timeout) ->
+connect_unix(_SocketPath, _DB) ->
+    erlang:nif_error({error, not_loaded}).
+
+-spec connect_unix(string(), non_neg_integer(), non_neg_integer()) -> {'ok', binary()} | error().
+connect_unix(_SocketPath, _DB, _Timeout) ->
     erlang:nif_error({error, not_loaded}).
 
 %% @doc: Executes given command ("GET", "SET", etc.; timeout in milliseconds
