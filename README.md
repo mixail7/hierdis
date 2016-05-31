@@ -20,13 +20,7 @@ This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis).
 > {ok,C} = hierdis:connect_unix("/tmp/redis.sock").
 {ok,<<>>}
 
-> {ok,C2} = hierdis:connect_unix("/tmp/redis.sock", 5000).
-{ok,<<>>}
-
 > {ok,C3} = hierdis:connect("127.0.0.1", 6379).
-{ok,<<>>}
-
-> {ok,C4} = hierdis:connect("127.0.0.1", 6379, 5000).
 {ok,<<>>}
 ```
 
@@ -53,13 +47,13 @@ This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis).
 
 ```erl
 > hierdis:pipeline(C, [
->     ["SET", "foo", "bar"],
->     ["GET", "foo"],
->     ["MSET" | ["key1", "1", "key2", "2", "key3", "3"]],
->     ["GET", "key1"],
->     ["GET", "key3"],
->     ["MGET" | ["key1", "key2", "key3"]]
-> ]).
+    ["SET", "foo", "bar"],
+    ["GET", "foo"],
+    ["MSET" | ["key1", "1", "key2", "2", "key3", "3"]],
+    ["GET", "key1"],
+    ["GET", "key3"],
+    ["MGET" | ["key1", "key2", "key3"]]
+]).
 [{ok,<<"OK">>},
  {ok,<<"bar">>},
  {ok,<<"OK">>},
@@ -72,18 +66,18 @@ This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis).
 
 ```erl
 > hierdis:transaction(C, [
->     ["SET", "foo", "bar"],
->     ["GET", "foo"],
->     ["MSET" | ["key1", "1", "key2", "2", "key3", "3"]],
->     ["MGET" | ["key1", "key2", "key3"]]
-> ]).
+    ["SET", "foo", "bar"],
+    ["GET", "foo"],
+    ["MSET" | ["key1", "1", "key2", "2", "key3", "3"]],
+    ["MGET" | ["key1", "key2", "key3"]]
+]).
 {ok,[<<"OK">>,<<"bar">>,<<"OK">>,[<<"1">>,<<"2">>,<<"3">>]]}
 > hierdis:transaction(C, [
->     ["SET", "foo", "bar"],
->     ["GET", "foo"],
->     ["CRASHER!" | ["ka", "blooey"]],
->     ["MGET" | ["key1", "key2", "key3"]]
-> ]).
+    ["SET", "foo", "bar"],
+    ["GET", "foo"],
+    ["CRASHER!" | ["ka", "blooey"]],
+    ["MGET" | ["key1", "key2", "key3"]]
+]).
 {error,{redis_reply_error,"EXECABORT Transaction discarded because of previous errors."}}
 ```
 
@@ -97,7 +91,7 @@ This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis).
 > hierdis:append_command(C, ["SET", "bar", "linedpipe"]).
 {ok,89}
 > hierdis:append_command(C, ["EXEC"]).
-{ok,183}
+{ok,103}
 > hierdis:get_reply(C).
 {ok,<<"OK">>}
 > hierdis:get_reply(C).
@@ -105,8 +99,7 @@ This is the fork of [basho-labs/hierdis](https://github.com/basho-labs/hierdis).
 > hierdis:get_reply(C).
 {ok,<<"QUEUED">>}
 > hierdis:get_reply(C).
-{ok,[<<"OK">>,<<"OK">>,<<"OK">>,
-     [<<"pipelined">>,<<"linedpipe">>,<<"ploplooned">>]]}
+{ok,[<<"OK">>,<<"OK">>]}
 ```
 
 #####Set read/write timeout once for the connection
@@ -121,6 +114,8 @@ ok
 ## Reconnecting on Redis down / network failure / timeout / etc
 
 The general behavior is very similar to [eredis reconnecting](https://github.com/wooga/eredis#reconnecting-on-redis-down--network-failure--timeout--etc), except the fact that this client is not running in background, therefore won't be trying to reconnect every N seconds. Instead, it will try to reconnect before every operation (command, pipeline, etc.).
+
+**Note that** if you don't set a timeout (using either `connect/4` or `connect_unix/3`), reconnect will block for some time (until your Redis shows up again).
 
 ## Performance Comparison
 

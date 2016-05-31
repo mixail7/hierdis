@@ -108,7 +108,6 @@ static ERL_NIF_TERM hierdis_make_response(ErlNifEnv* env, redisReply* r, bool as
 static ERL_NIF_TERM connect(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     unsigned int length;
-
     if(!enif_get_list_length(env, argv[0], &length))
     {
         return enif_make_badarg(env);
@@ -116,96 +115,146 @@ static ERL_NIF_TERM connect(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
     char ip[length+1];
     int port;
-    int timeout;
-
-    if(enif_get_string(env, argv[0], ip, length+1, ERL_NIF_LATIN1) && enif_get_int(env, argv[1], &port))
+    if(!enif_get_string(env, argv[0], ip, length+1, ERL_NIF_LATIN1) || !enif_get_int(env, argv[1], &port))
     {
-        hiredis_context_handle* handle = (hiredis_context_handle*)enif_alloc_resource(HIREDIS_CONTEXT_RESOURCE, sizeof(hiredis_context_handle));
+        return enif_make_badarg(env);
+    }
 
-        if(argc == 3)
+    hiredis_context_handle* handle = (hiredis_context_handle*)enif_alloc_resource(HIREDIS_CONTEXT_RESOURCE, sizeof(hiredis_context_handle));
+
+    if(argc >= 4) // timeout was passed
+    {
+        int timeout;
+        if(enif_get_int(env, argv[3], &timeout) && timeout >= 0)
         {
-            if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
+            struct timeval tv = timeout_to_timeval(timeout);
+            handle->context = redisConnectWithTimeout(ip, port, tv);
+        }
+        else
+        {
+            return enif_make_badarg(env);
+        }
+    }
+    else
+    {
+        handle->context = redisConnect(ip, port);
+    }
+
+    if (handle->context == NULL)
+    {
+        ERL_NIF_TERM error = hierdis_make_error(env, REDIS_ERR_OTHER, "Unable to create redisContext");
+        enif_release_resource(handle);
+        return error;
+    }
+    else if (handle->context->err)
+    {
+        ERL_NIF_TERM error = hierdis_make_error(env, handle->context->err, handle->context->errstr);
+        enif_release_resource(handle);
+        return error;
+    }
+    else
+    {
+        if(argc >= 3) // DB was passed
+        {
+            int db;
+            if(enif_get_int(env, argv[2], &db) && db >= 0)
             {
-                struct timeval tv = timeout_to_timeval(timeout);
-                handle->context = redisConnectWithTimeout(ip, port, tv);
+                handle->db = db;
+                redisReply* reply = redisSelect(handle->context, db);
+                if (handle->context->err)
+                {
+                    return hierdis_make_error(env, handle->context->err, handle->context->errstr);
+                }
+                else if(reply != NULL && reply->type == REDIS_REPLY_ERROR)
+                {
+                    return hierdis_make_error(env, REDIS_REPLY_ERROR, reply->str);
+                }
             }
             else
             {
                 return enif_make_badarg(env);
             }
         }
-        else
-        {
-            handle->context = redisConnect(ip, port);
-        }
 
-        if (handle->context != NULL && handle->context->err)
-        {
-            ERL_NIF_TERM error = hierdis_make_error(env, handle->context->err, handle->context->errstr);
-            enif_release_resource(handle);
-            return error;
-        }
-        else
-        {
-            ERL_NIF_TERM result = enif_make_resource(env, handle);
-            enif_release_resource(handle);
-            return enif_make_tuple2(env, ATOM_OK, result);
-        }
-    }
-    else
-    {
-        return enif_make_badarg(env);
+        ERL_NIF_TERM result = enif_make_resource(env, handle);
+        enif_release_resource(handle);
+        return enif_make_tuple2(env, ATOM_OK, result);
     }
 };
 
 static ERL_NIF_TERM connect_unix(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     unsigned int length;
-
     if(!enif_get_list_length(env, argv[0], &length))
     {
         return enif_make_badarg(env);
     }
 
     char socket_path[length+1];
-    int timeout;
-
-    if(enif_get_string(env, argv[0], socket_path, length+1, ERL_NIF_LATIN1))
+    if(!enif_get_string(env, argv[0], socket_path, length+1, ERL_NIF_LATIN1))
     {
-        hiredis_context_handle* handle = (hiredis_context_handle*)enif_alloc_resource(HIREDIS_CONTEXT_RESOURCE, sizeof(hiredis_context_handle));
-        if(argc == 3)
+        return enif_make_badarg(env);
+    }
+
+    hiredis_context_handle* handle = (hiredis_context_handle*)enif_alloc_resource(HIREDIS_CONTEXT_RESOURCE, sizeof(hiredis_context_handle));
+
+    if(argc >= 3)
+    {
+        int timeout;
+        if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
         {
-            if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
+            struct timeval tv = timeout_to_timeval(timeout);
+            handle->context = redisConnectUnixWithTimeout(socket_path, tv);
+        }
+        else
+        {
+            return enif_make_badarg(env);
+        }
+    }
+    else
+    {
+        handle->context = redisConnectUnix(socket_path);
+    }
+
+    if (handle->context == NULL)
+    {
+        ERL_NIF_TERM error = hierdis_make_error(env, REDIS_ERR_OTHER, "Unable to create redisContext");
+        enif_release_resource(handle);
+        return error;
+    }
+    else if (handle->context->err)
+    {
+        ERL_NIF_TERM error = hierdis_make_error(env, handle->context->err, handle->context->errstr);
+        enif_release_resource(handle);
+        return error;
+    }
+    else
+    {
+        if(argc >= 2) // DB was passed
+        {
+            int db;
+            if(enif_get_int(env, argv[1], &db) && db >= 0)
             {
-                struct timeval tv = timeout_to_timeval(timeout);
-                handle->context = redisConnectUnixWithTimeout(socket_path, tv);
+                handle->db = db;
+                redisReply* reply = redisSelect(handle->context, db);
+                if (handle->context->err)
+                {
+                    return hierdis_make_error(env, handle->context->err, handle->context->errstr);
+                }
+                else if(reply != NULL && reply->type == REDIS_REPLY_ERROR)
+                {
+                    return hierdis_make_error(env, REDIS_REPLY_ERROR, reply->str);
+                }
             }
             else
             {
                 return enif_make_badarg(env);
             }
         }
-        else
-        {
-            handle->context = redisConnectUnix(socket_path);
-        }
 
-        if (handle->context != NULL && handle->context->err)
-        {
-            ERL_NIF_TERM error = hierdis_make_error(env, handle->context->err, handle->context->errstr);
-            enif_release_resource(handle);
-            return error;
-        }
-        else
-        {
-            ERL_NIF_TERM result = enif_make_resource(env, handle);
-            enif_release_resource(handle);
-            return enif_make_tuple2(env, ATOM_OK, result);
-        }
-    }
-    else
-    {
-        return enif_make_badarg(env);
+        ERL_NIF_TERM result = enif_make_resource(env, handle);
+        enif_release_resource(handle);
+        return enif_make_tuple2(env, ATOM_OK, result);
     }
 };
 
@@ -232,11 +281,14 @@ static int list_to_hiredis_argv(ErlNifEnv* env, ERL_NIF_TERM list, unsigned int 
 
 static ERL_NIF_TERM command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    hiredis_context_handle* handle;
-    redisReply* reply;
-    unsigned int hiredis_argc;
-    int timeout;
 
+    hiredis_context_handle* handle;
+    if(!enif_get_resource(env, argv[0], HIREDIS_CONTEXT_RESOURCE, (void**)&handle))
+    {
+        return enif_make_badarg(env);
+    }
+
+    unsigned int hiredis_argc;
     if (!enif_get_list_length(env, argv[1], &hiredis_argc))
     {
         return enif_make_badarg(env);
@@ -244,70 +296,79 @@ static ERL_NIF_TERM command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
     const char* hiredis_argv[hiredis_argc];
     size_t hiredis_argv_lengths[hiredis_argc];
-
-    if(enif_get_resource(env, argv[0], HIREDIS_CONTEXT_RESOURCE, (void**)&handle))
+    if(!list_to_hiredis_argv(env, argv[1], hiredis_argc, hiredis_argv, hiredis_argv_lengths))
     {
-        if(handle->context != NULL && handle->context->err) // attempt reconnect
-        {
-            if(REDIS_ERR == redisReconnect(handle->context))
-            {
-                return hierdis_make_error(env, handle->context->err, handle->context->errstr);
-            }
-        }
+        return enif_make_badarg(env);
+    }
 
-        if(!list_to_hiredis_argv(env, argv[1], hiredis_argc, hiredis_argv, hiredis_argv_lengths))
-        {
-            return enif_make_badarg(env);
-        }
-
-        if(argc == 3)
-        {
-            if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
-            {
-                struct timeval tv = timeout_to_timeval(timeout);
-                // ignoring possible errors, because command is what really matters here
-                redisSetTimeout(handle->context, tv);
-            }
-            else
-            {
-                return enif_make_badarg(env);
-            }
-        }
-
-        reply = redisCommandArgv(handle->context, hiredis_argc, hiredis_argv, hiredis_argv_lengths);
-
-        if(argc == 3 && handle->context != NULL)
-        {
-            // return to default timeout
-            struct timeval unlimited = {0, 0};
-            redisSetTimeout(handle->context, unlimited);
-        }
-
-        if (handle->context != NULL && handle->context->err)
+    if(handle->context->err) // attempt reconnect
+    {
+        if(REDIS_ERR == redisReconnect(handle->context))
         {
             return hierdis_make_error(env, handle->context->err, handle->context->errstr);
         }
-        else if(reply->type == REDIS_REPLY_ERROR)
+        else // reselect DB
         {
-            return hierdis_make_error(env, REDIS_REPLY_ERROR, reply->str);
+            redisReply* reply = redisSelect(handle->context, handle->db);
+            if (handle->context->err)
+            {
+                return hierdis_make_error(env, handle->context->err, handle->context->errstr);
+            }
+            else if(reply != NULL && reply->type == REDIS_REPLY_ERROR)
+            {
+                return hierdis_make_error(env, REDIS_REPLY_ERROR, reply->str);
+            }
+        }
+    }
+
+    if (argc >= 3) // timeout was passed
+    {
+        int timeout;
+        if (enif_get_int(env, argv[2], &timeout) && timeout >= 0)
+        {
+            struct timeval tv = timeout_to_timeval(timeout);
+            // ignoring possible errors, because command is what really matters here
+            redisSetTimeout(handle->context, tv);
         }
         else
         {
-            return enif_make_tuple2(env, ATOM_OK, hierdis_make_response(env, reply, false));
+            return enif_make_badarg(env);
         }
+    }
+
+    redisReply* reply;
+    reply = redisCommandArgv(handle->context, hiredis_argc, hiredis_argv, hiredis_argv_lengths);
+
+    if (argc >= 3)
+    {
+        // return to default timeout
+        struct timeval unlimited = {0, 0};
+        redisSetTimeout(handle->context, unlimited);
+    }
+
+    if (handle->context->err)
+    {
+        return hierdis_make_error(env, handle->context->err, handle->context->errstr);
+    }
+    else if (reply != NULL && reply->type == REDIS_REPLY_ERROR)
+    {
+        return hierdis_make_error(env, REDIS_REPLY_ERROR, reply->str);
     }
     else
     {
-        return enif_make_badarg(env);
+        return enif_make_tuple2(env, ATOM_OK, hierdis_make_response(env, reply, false));
     }
 };
 
 static ERL_NIF_TERM append_command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     hiredis_context_handle* handle;
-    unsigned int hiredis_argc;
-    int timeout;
+    if (!enif_get_resource(env, argv[0], HIREDIS_CONTEXT_RESOURCE, (void**)&handle))
+    {
+        return enif_make_badarg(env);
+    }
 
+    unsigned int hiredis_argc;
     if (!enif_get_list_length(env, argv[1], &hiredis_argc))
     {
         return enif_make_badarg(env);
@@ -315,163 +376,175 @@ static ERL_NIF_TERM append_command(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
 
     const char* hiredis_argv[hiredis_argc];
     size_t hiredis_argv_lengths[hiredis_argc];
-
-    if(enif_get_resource(env, argv[0], HIREDIS_CONTEXT_RESOURCE, (void**)&handle))
+    if(!list_to_hiredis_argv(env, argv[1], hiredis_argc, hiredis_argv, hiredis_argv_lengths))
     {
-        if(handle->context != NULL && handle->context->err) // attempt reconnect
-        {
-            if(REDIS_ERR == redisReconnect(handle->context))
-            {
-                return hierdis_make_error(env, handle->context->err, handle->context->errstr);
-            }
-        }
+        return enif_make_badarg(env);
+    }
 
-        if(!list_to_hiredis_argv(env, argv[1], hiredis_argc, hiredis_argv, hiredis_argv_lengths))
-        {
-            return enif_make_badarg(env);
-        }
-
-        if(argc == 3)
-        {
-            if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
-            {
-                struct timeval tv = timeout_to_timeval(timeout);
-                // ignoring possible errors, because command is what really matters here
-                redisSetTimeout(handle->context, tv);
-            }
-            else
-            {
-                return enif_make_badarg(env);
-            }
-        }
-
-        redisAppendCommandArgv(handle->context, hiredis_argc, hiredis_argv, hiredis_argv_lengths);
-
-        if(argc == 3 && handle->context != NULL)
-        {
-            // return to default timeout
-            struct timeval unlimited = {0, 0};
-            redisSetTimeout(handle->context, unlimited);
-        }
-
-        if (handle->context != NULL && handle->context->err)
+    if (handle->context->err) // attempt reconnect
+    {
+        if(REDIS_ERR == redisReconnect(handle->context))
         {
             return hierdis_make_error(env, handle->context->err, handle->context->errstr);
         }
+        else // reselect DB
+        {
+            redisReply* reply = redisSelect(handle->context, handle->db);
+            if (handle->context->err)
+            {
+                return hierdis_make_error(env, handle->context->err, handle->context->errstr);
+            }
+            else if (reply != NULL && reply->type == REDIS_REPLY_ERROR)
+            {
+                return hierdis_make_error(env, REDIS_REPLY_ERROR, reply->str);
+            }
+        }
+    }
+
+    if(argc >= 3)
+    {
+        int timeout;
+        if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
+        {
+            struct timeval tv = timeout_to_timeval(timeout);
+            // ignoring possible errors, because command is what really matters here
+            redisSetTimeout(handle->context, tv);
+        }
         else
         {
-            return enif_make_tuple2(env, ATOM_OK, enif_make_int(env, sdslen(handle->context->obuf)));
+            return enif_make_badarg(env);
         }
+    }
+
+    redisAppendCommandArgv(handle->context, hiredis_argc, hiredis_argv, hiredis_argv_lengths);
+
+    if(argc >= 3)
+    {
+        // return to default timeout
+        struct timeval unlimited = {0, 0};
+        redisSetTimeout(handle->context, unlimited);
+    }
+
+    if (handle->context->err)
+    {
+        return hierdis_make_error(env, handle->context->err, handle->context->errstr);
     }
     else
     {
-        return enif_make_badarg(env);
+        return enif_make_tuple2(env, ATOM_OK, enif_make_int(env, sdslen(handle->context->obuf)));
     }
 };
 
 static ERL_NIF_TERM get_reply(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     hiredis_context_handle* handle;
-    int timeout;
-
-    if(enif_get_resource(env, argv[0], HIREDIS_CONTEXT_RESOURCE, (void**)&handle))
-    {
-        if(handle->context != NULL && handle->context->err) // attempt reconnect
-        {
-            if(REDIS_ERR == redisReconnect(handle->context))
-            {
-                return hierdis_make_error(env, handle->context->err, handle->context->errstr);
-            }
-        }
-
-        if(argc == 2)
-        {
-            if(enif_get_int(env, argv[1], &timeout) && timeout >= 0)
-            {
-                struct timeval tv = timeout_to_timeval(timeout);
-                // ignoring possible errors, because command is what really matters here
-                redisSetTimeout(handle->context, tv);
-            }
-            else
-            {
-                return enif_make_badarg(env);
-            }
-        }
-
-        redisReply* reply;
-
-        redisGetReply(handle->context, (void*)&reply);
-
-        if(argc == 2 && handle->context != NULL)
-        {
-            // return to default timeout
-            struct timeval unlimited = {0, 0};
-            redisSetTimeout(handle->context, unlimited);
-        }
-
-        if (handle->context != NULL && handle->context->err)
-        {
-            return hierdis_make_error(env, handle->context->err, handle->context->errstr);
-        }
-        else if(reply->type == REDIS_REPLY_ERROR)
-        {
-            return hierdis_make_error(env, REDIS_REPLY_ERROR, reply->str);
-        }
-        else
-        {
-            return enif_make_tuple2(env, ATOM_OK, hierdis_make_response(env, (redisReply*)reply, false));
-        }
-    }
-    else
+    if(!enif_get_resource(env, argv[0], HIREDIS_CONTEXT_RESOURCE, (void**)&handle))
     {
         return enif_make_badarg(env);
     }
-};
 
-static ERL_NIF_TERM set_timeout(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
-{
-    hiredis_context_handle* handle;
-    int timeout;
-
-    if(enif_get_resource(env, argv[0], HIREDIS_CONTEXT_RESOURCE, (void**)&handle))
+    if(handle->context->err) // attempt reconnect
     {
-        if(handle->context != NULL && handle->context->err) // attempt reconnect
+        if(REDIS_ERR == redisReconnect(handle->context))
         {
-            if(REDIS_ERR == redisReconnect(handle->context))
+            return hierdis_make_error(env, handle->context->err, handle->context->errstr);
+        }
+        else // reselect DB
+        {
+            redisReply* reply = redisSelect(handle->context, handle->db);
+            if (handle->context->err)
             {
-                return ATOM_ERROR;
+                return hierdis_make_error(env, handle->context->err, handle->context->errstr);
+            }
+            else if(reply != NULL && reply->type == REDIS_REPLY_ERROR)
+            {
+                return hierdis_make_error(env, REDIS_REPLY_ERROR, reply->str);
             }
         }
+    }
 
+    if(argc >= 2)
+    {
+        int timeout;
         if(enif_get_int(env, argv[1], &timeout) && timeout >= 0)
         {
             struct timeval tv = timeout_to_timeval(timeout);
-            if (redisSetTimeout(handle->context, tv) == REDIS_OK)
-            {
-                return ATOM_OK;
-            }
-            else
-            {
-                return ATOM_ERROR;
-            }
+            // ignoring possible errors, because command is what really matters here
+            redisSetTimeout(handle->context, tv);
         }
         else
         {
             return enif_make_badarg(env);
         }
     }
+
+    redisReply* reply;
+    int redisCode = redisGetReply(handle->context, (void*)&reply);
+
+    if(argc >= 2)
+    {
+        // return to default timeout
+        struct timeval unlimited = {0, 0};
+        redisSetTimeout(handle->context, unlimited);
+    }
+
+    if (handle->context->err)
+    {
+        return hierdis_make_error(env, handle->context->err, handle->context->errstr);
+    }
+    else if (reply != NULL && reply->type == REDIS_REPLY_ERROR)
+    {
+        return hierdis_make_error(env, REDIS_REPLY_ERROR, reply->str);
+    }
+    else
+    {
+        return enif_make_tuple2(env, ATOM_OK, hierdis_make_response(env, reply, false));
+    }
+};
+
+static ERL_NIF_TERM set_timeout(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    hiredis_context_handle* handle;
+    if (!enif_get_resource(env, argv[0], HIREDIS_CONTEXT_RESOURCE, (void**)&handle))
+    {
+        return enif_make_badarg(env);
+    }
+
+    int timeout;
+    if(enif_get_int(env, argv[1], &timeout) && timeout >= 0)
+    {
+        struct timeval tv = timeout_to_timeval(timeout);
+        if (REDIS_OK == redisSetTimeout(handle->context, tv))
+        {
+            return ATOM_OK;
+        }
+        else
+        {
+            return ATOM_ERROR;
+        }
+    }
     else
     {
         return enif_make_badarg(env);
     }
 };
 
+redisReply* redisSelect(redisContext* context, int db)
+{
+    char dbStr[10];
+    sprintf(dbStr, "%d", db);
+    const char *argv[2] = {"SELECT", dbStr};
+    return redisCommandArgv(context, 2, argv, NULL);
+};
+
 static ErlNifFunc nif_funcs[] =
 {
     {"connect", 2, connect},
     {"connect", 3, connect},
+    {"connect", 4, connect},
     {"connect_unix", 1, connect_unix},
     {"connect_unix", 2, connect_unix},
+    {"connect_unix", 3, connect_unix},
 
     {"command", 2, command},
     {"command", 3, command},
