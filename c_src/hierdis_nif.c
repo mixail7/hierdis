@@ -122,7 +122,7 @@ static ERL_NIF_TERM connect(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
     hiredis_context_handle* handle = (hiredis_context_handle*)enif_alloc_resource(HIREDIS_CONTEXT_RESOURCE, sizeof(hiredis_context_handle));
 
-    if(argc == 4) // timeout was passed
+    if(argc >= 4) // timeout was passed
     {
         int timeout;
         if(enif_get_int(env, argv[3], &timeout) && timeout >= 0)
@@ -154,7 +154,7 @@ static ERL_NIF_TERM connect(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     }
     else
     {
-        if(argc == 3) // DB was passed
+        if(argc >= 3) // DB was passed
         {
             int db;
             if(enif_get_int(env, argv[2], &db) && db >= 0)
@@ -198,7 +198,7 @@ static ERL_NIF_TERM connect_unix(ErlNifEnv* env, int argc, const ERL_NIF_TERM ar
 
     hiredis_context_handle* handle = (hiredis_context_handle*)enif_alloc_resource(HIREDIS_CONTEXT_RESOURCE, sizeof(hiredis_context_handle));
 
-    if(argc == 3)
+    if(argc >= 3)
     {
         int timeout;
         if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
@@ -230,7 +230,7 @@ static ERL_NIF_TERM connect_unix(ErlNifEnv* env, int argc, const ERL_NIF_TERM ar
     }
     else
     {
-        if(argc == 2) // DB was passed
+        if(argc >= 2) // DB was passed
         {
             int db;
             if(enif_get_int(env, argv[1], &db) && db >= 0)
@@ -321,7 +321,7 @@ static ERL_NIF_TERM command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         }
     }
 
-    if (argc == 3) // timeout was passed
+    if (argc >= 3) // timeout was passed
     {
         int timeout;
         if (enif_get_int(env, argv[2], &timeout) && timeout >= 0)
@@ -339,7 +339,7 @@ static ERL_NIF_TERM command(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     redisReply* reply;
     reply = redisCommandArgv(handle->context, hiredis_argc, hiredis_argv, hiredis_argv_lengths);
 
-    if (argc == 3)
+    if (argc >= 3)
     {
         // return to default timeout
         struct timeval unlimited = {0, 0};
@@ -401,7 +401,7 @@ static ERL_NIF_TERM append_command(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
         }
     }
 
-    if(argc == 3)
+    if(argc >= 3)
     {
         int timeout;
         if(enif_get_int(env, argv[2], &timeout) && timeout >= 0)
@@ -418,7 +418,7 @@ static ERL_NIF_TERM append_command(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
 
     redisAppendCommandArgv(handle->context, hiredis_argc, hiredis_argv, hiredis_argv_lengths);
 
-    if(argc == 3)
+    if(argc >= 3)
     {
         // return to default timeout
         struct timeval unlimited = {0, 0};
@@ -463,7 +463,7 @@ static ERL_NIF_TERM get_reply(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
         }
     }
 
-    if(argc == 2)
+    if(argc >= 2)
     {
         int timeout;
         if(enif_get_int(env, argv[1], &timeout) && timeout >= 0)
@@ -481,7 +481,7 @@ static ERL_NIF_TERM get_reply(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
     redisReply* reply;
     int redisCode = redisGetReply(handle->context, (void*)&reply);
 
-    if(argc == 2)
+    if(argc >= 2)
     {
         // return to default timeout
         struct timeval unlimited = {0, 0};
